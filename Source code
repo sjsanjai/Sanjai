@@ -1,0 +1,84 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import seaborn as sns
+
+# Load sample handwritten digits dataset
+digits = load_digits()
+
+# Create a DataFrame similar to your CSV format
+df = pd.DataFrame(digits.data)
+df.insert(0, 'label', digits.target)
+
+# Explore the dataset
+print("Dataset shape:", df.shape)
+print("\nFirst few rows:")
+print(df.head())
+print("\nClass distribution:")
+print(df['label'].value_counts())
+
+# Visualize some samples
+def plot_digits(data, num_images=10):
+    fig, axes = plt.subplots(2, 5, figsize=(10, 5))
+    axes = axes.ravel()
+
+    for i in range(num_images):
+        img = data.iloc[i, 1:].values.reshape(8, 8)  # Digits dataset is 8x8
+        axes[i].imshow(img, cmap='gray')
+        axes[i].set_title(f"Label: {data.iloc[i, 0]}")
+        axes[i].axis('off')
+    plt.tight_layout()
+    plt.show()
+
+plot_digits(df)
+
+# Prepare data for modeling
+X = df.drop('label', axis=1)
+y = df['label']
+
+# Split data into train and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize the features
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Train a Random Forest classifier
+clf = RandomForestClassifier(n_estimators=100, random_state=42)
+clf.fit(X_train, y_train)
+
+# Make predictions
+y_pred = clf.predict(X_test)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print(f"\nModel Accuracy: {accuracy:.4f}")
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# Confusion matrix
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(10, 8))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=range(10), yticklabels=range(10))
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.title('Confusion Matrix')
+plt.show()
+
+# Feature importance (reshape for 8x8)
+feature_importance = clf.feature_importances_
+feature_importance = feature_importance.reshape(8, 8)
+
+plt.figure(figsize=(6, 5))
+plt.imshow(feature_importance, cmap='hot')
+plt.colorbar()
+plt.title('Pixel Importance')
+plt.show()
